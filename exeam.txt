@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+data = pd.read_csv('Data_for_train.csv')
+
+#data.plot()
+#plt.show()
+
+#data['Month'] = pd.to_datetime(data['Month'])
+data.set_index('Month', inplace=True)
+#print(data)
+
+#data.plot(figsize=(15,6))
+#plt.show()
+
+size = int(len(data) * 0.66)
+train, test = data[0:size].copy(), data[size:len(data)].copy();
+
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+#acf_org = plot_acf(train)
+#plt.show()
+#pacf_org = plot_pacf(train)
+#plt.show()
+
+train_diff = train.diff().dropna()
+#train_diff2 = train_diff.diff().dropna()
+#train_diff.plot()
+#plt.show()
+
+
+from statsmodels.tsa.arima.model import ARIMA
+model = ARIMA(train, order=(5,1,0))
+fitted_model = model.fit()
+print(fitted_model.summary())
+
+
+#prediction
+pred = fitted_model.get_prediction(dynamic=False)
+pred_ci = pred.conf_int()
+print(pred_ci)
+
+
+
+#extra
+#residuals = fitted_model.resid[1:]
+#fig, ax = plt.subplots(1,2)
+#residuals.plot(title="Residuals", ax=ax[0])
+#residuals.plot(title="Density", kind='kde', ax=ax[1])
+#plt.show()
+
+
+#forecast
+forecast_test = fitted_model.forecast(len(test))
+data['forecast_manual'] = [None]*len(train) + list(forecast_test)
+data.plot()
+plt.show()
+
+
+
+#Error
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(test, forecast_test)
+rmse = np.sqrt(mse)
+print("MSE: ", mse)
+print("RMSE: ", rmse)
+
+#import pmdarima as pm
+#auto_arima = pm.auto_arima(train, stepwise=False, seasonal=False)
+#print(auto_arima)
